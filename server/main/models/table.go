@@ -23,13 +23,13 @@ func (this *Table) Compare(other *Table) ([]string, error) {
 	for _, otherColumn := range other.Columns {
 		ownColumn := this.GetColumn(otherColumn.Name)
 		if ownColumn == nil {
-			changeList = append(changeList, "ALTER TABLE ADD ("+ otherColumn.Name)
+			changeList = append(changeList, this.Name + ": ALTER TABLE ADD COLUMN("+ otherColumn.Name+")")
 		} else {
 			list, _ := ownColumn.Compare(otherColumn)
 			changeList = append(changeList, list...)
 		}
 	}
-	return nil, nil	
+	return changeList, nil	
 }
 
 func (this *Table) GetColumn(columnName string) *Column {

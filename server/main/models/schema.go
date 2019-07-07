@@ -2,6 +2,9 @@ package models
 
 import (
 	"encoding/json"
+	"os"
+	"io/ioutil"
+	"fmt"
 )
 
 type Schema struct{
@@ -13,6 +16,9 @@ type Schema struct{
 	Views []View
 	Description string
 }
+
+
+
 
     func (this *Schema) GetProcedure(name string) *Procedure {
 		for _, procedure := range this.Procedures {
@@ -68,7 +74,7 @@ type Schema struct{
 				changeList = append(changeList, "PRC CREATE: " + newVersionPrc.Name)
 			}else {
 				if newVersionPrc.GetDigest() != prc.GetDigest() {//exist but not equal
-					changeList = append(changeList, "PRC EDIT: " + prc.Name)
+					changeList = append(changeList, "PRC MODIFY: " + prc.Name)
 				}
 			}
 		}
@@ -78,37 +84,41 @@ type Schema struct{
 				changeList = append(changeList, "PRC DROP: "+ currentVersionPrc.Name)
 			}
 		}
-		//compare fnc
+		// //compare fnc
 		for _, newVersionFnc := range newVersion.Functions {
 			fnc := this.GetFunction(newVersionFnc.Name)
 			if fnc == nil {//not found=> add new procedure
-				changeList = append(changeList, "PRC CREATE: " + newVersionFnc.Name)
+				changeList = append(changeList, "FNC CREATE: " + newVersionFnc.Name)
 			}else {
 				if newVersionFnc.GetDigest() != fnc.GetDigest() {//exist but not equal
-					changeList = append(changeList, "PRC EDIT: " + fnc.Name)
+					changeList = append(changeList, "FNC MODIFY: " + fnc.Name)
 				}
 			}
 		}
 		for _, currentVersionFnc := range this.Functions {//drop old function
 			fnc := newVersion.GetFunction(currentVersionFnc.Name)
 			if fnc == nil {
-				changeList = append(changeList, "PRC DROP: "+ currentVersionFnc.Name)
+				changeList = append(changeList, "FNC DROP: "+ currentVersionFnc.Name)
 			}
 		}
-		//compare pkg
-		//compare tbl
+		// //compare pkg
+		// //compare tbl
 		for _, newVersionTbl := range newVersion.Tables {
-			tbl := this.GetView(newVersionTbl.Name)
+			tbl := this.GetTable(newVersionTbl.Name)
 			if tbl == nil {//not found=> add new procedure
 				changeList = append(changeList, "TBL CREATE: " + newVersionTbl.Name)
 			}else {
 				// if newVersionTbl.GetDigest() != tbl.GetDigest() {//exist but not equal
-				// 	changeList = append(changeList, "TBL EDIT: " + tbl.Name)
+				// 	changeList = append(changeList, "TBL MODIFY: " + tbl.Name)
 				// }
+				list, err := newVersionTbl.Compare(tbl)
+				if err == nil {
+					changeList = append(changeList, list...)
+				}
 			}
 		}
-		for _, currentVersionNvw := range this.Functions {//drop old view
-			tbl := newVersion.GetView(currentVersionNvw.Name)
+		for _, currentVersionNvw := range this.Tables {//drop old view
+			tbl := newVersion.GetTable(currentVersionNvw.Name)
 			if tbl == nil {
 				changeList = append(changeList, "TBL DROP: "+ currentVersionNvw.Name)
 			}
@@ -124,13 +134,13 @@ type Schema struct{
 				}
 			}
 		}
-		for _, currentVersionNvw := range this.Functions {//drop old view
+		for _, currentVersionNvw := range this.Views {//drop old view
 			nvw := newVersion.GetView(currentVersionNvw.Name)
 			if nvw == nil {
 				changeList = append(changeList, "NVW DROP: "+ currentVersionNvw.Name)
 			}
 		}
-		return nil
+		return changeList
 	}
 	
 	func (this *Schema) ToJSONString() string{
@@ -141,4 +151,23 @@ type Schema struct{
 		return string(js)
 	}
 
+	func FetchSchema(dbimage string) Schema {
+			// Open our jsonFile
+		jsonFile, err := os.Open(dbimage)
+		var schema Schema
+		// if we os.Open returns an error then handle it
+		if err != nil {
+			fmt.Println(err)
+		}
+		fmt.Println("Successfully Opened dbimage")
+		// defer the closing of our jsonFile so that we can parse it later on
+		defer jsonFile.Close()
+		// read our opened xmlFile as a byte array.
+		byteValue, _ := ioutil.ReadAll(jsonFile)
 
+		// we initialize our Users array
+		// we unmarshal our byteArray which contains our
+		// jsonFile's content into 'users' which we defined above
+		json.Unmarshal(byteValue, &schema)
+		return schema
+	}
