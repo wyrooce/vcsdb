@@ -23,7 +23,7 @@ const PROCEDURE_QUERY = "WITH tmp AS\n" +
             "  user_objects o\n" +
             "WHERE t.NAME = o.object_name\n" +
             "ORDER BY o.created"
-
+/*
 const TABLE_PROPERTY_QUERY = "SELECT table_name, column_name, data_type, data_length, nullable, data_default, column_id, o.object_id\n" +
             "FROM dba_tab_columns, user_objects o\n" +
             "WHERE owner       = USER\n" +
@@ -34,7 +34,14 @@ const TABLE_PROPERTY_QUERY = "SELECT table_name, column_name, data_type, data_le
             "  WHERE owner     = USER\n" +
             "  AND object_type = 'TABLE'\n" +
             "  )\n" +
-            "ORDER BY o.created"
+            "ORDER BY table_name, column_name"
+*/
+
+const TABLE_PROPERTY_QUERY = "select table_name, column_name, data_type, data_length, nullable, data_default,0,0-- column_id, o.object_id\n"+
+                            "from user_tab_columns where table_name in\n"+
+                            "(SELECT DISTINCT TABLE_NAME\n"+
+                            "FROM SYS.ALL_TABLES\n"+
+                            "WHERE owner = USER)"
 
 const VIEW_PROPERTY_QUERY = "SELECT t.view_name, t.text, o.object_id\n" +
                     "FROM user_views t, user_objects o\n" +

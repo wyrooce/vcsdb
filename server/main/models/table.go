@@ -4,7 +4,7 @@ import (
 	"errors"
 	"database/sql"
 	_ "gopkg.in/goracle.v2"
-	// "fmt"
+//	"fmt"
 	"log"
 	"strconv"
 	"encoding/json"
@@ -15,17 +15,18 @@ type Table struct{
 	Columns []Column
 }
 
-func (this *Table) Compare(other *Table) ([]string, error) {
+func (this *Table) Compare(mashhadTbl *Table) ([]string, error) {
 	var changeList []string
-	if this.Name != other.Name {
+	if this.Name != mashhadTbl.Name {
 		return nil, errors.New("compare: Incompatible compare")
 	}
-	for _, otherColumn := range other.Columns {
-		ownColumn := this.GetColumn(otherColumn.Name)
-		if ownColumn == nil {
-			changeList = append(changeList, this.Name + ": ALTER TABLE ADD COLUMN("+ otherColumn.Name+")")
+	for _, mashhadColumn := range mashhadTbl.Columns {
+		tehranColumn := this.GetColumn(mashhadColumn.Name)
+		if tehranColumn == nil {
+			alter := "ALTER TABLE "+mashhadTbl.Name + " ADD " + mashhadColumn.Name + " " +mashhadColumn.DataType+ ";"
+			changeList = append(changeList, this.Name + ": " + alter)
 		} else {
-			list, _ := ownColumn.Compare(otherColumn)
+			list, _ := tehranColumn.Compare(mashhadColumn)
 			changeList = append(changeList, list...)
 		}
 	}

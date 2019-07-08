@@ -65,27 +65,27 @@ type Schema struct{
 		return nil
 	}
 	
-	func (this *Schema) Compare(newVersion Schema) []string{ //compare with new version
+	func (this *Schema) Compare(mshdSchema Schema) []string{ //compare with new version
 		var changeList []string
 		//compare prc
-		for _, newVersionPrc := range newVersion.Procedures {
-			prc := this.GetProcedure(newVersionPrc.Name)
+		for _, mshdPrc := range mshdSchema.Procedures {
+			prc := this.GetProcedure(mshdPrc.Name)
 			if prc == nil {//not found=> add new procedure
-				changeList = append(changeList, "PRC CREATE: " + newVersionPrc.Name)
+				changeList = append(changeList, "PRC CREATE: " + mshdPrc.Name)
 			}else {
-				if newVersionPrc.GetDigest() != prc.GetDigest() {//exist but not equal
+				if mshdPrc.GetDigest() != prc.GetDigest() {//exist but not equal
 					changeList = append(changeList, "PRC MODIFY: " + prc.Name)
 				}
 			}
 		}
 		for _, currentVersionPrc := range this.Procedures {//drop old procedure
-			prc := newVersion.GetProcedure(currentVersionPrc.Name)
+			prc := mshdSchema.GetProcedure(currentVersionPrc.Name)
 			if prc == nil {
 				changeList = append(changeList, "PRC DROP: "+ currentVersionPrc.Name)
 			}
 		}
 		// //compare fnc
-		for _, newVersionFnc := range newVersion.Functions {
+		for _, newVersionFnc := range mshdSchema.Functions {
 			fnc := this.GetFunction(newVersionFnc.Name)
 			if fnc == nil {//not found=> add new procedure
 				changeList = append(changeList, "FNC CREATE: " + newVersionFnc.Name)
@@ -96,35 +96,32 @@ type Schema struct{
 			}
 		}
 		for _, currentVersionFnc := range this.Functions {//drop old function
-			fnc := newVersion.GetFunction(currentVersionFnc.Name)
+			fnc := mshdSchema.GetFunction(currentVersionFnc.Name)
 			if fnc == nil {
 				changeList = append(changeList, "FNC DROP: "+ currentVersionFnc.Name)
 			}
 		}
-		// //compare pkg
-		// //compare tbl
-		for _, newVersionTbl := range newVersion.Tables {
-			tbl := this.GetTable(newVersionTbl.Name)
-			if tbl == nil {//not found=> add new procedure
-				changeList = append(changeList, "TBL CREATE: " + newVersionTbl.Name)
+		//compare pkg
+		//compare tbl
+		for _, mshdTbl := range mshdSchema.Tables {
+			tehranTbl := this.GetTable(mshdTbl.Name)
+			if tehranTbl == nil {//not found=> add new procedure
+				changeList = append(changeList, "TBL CREATE: " + mshdTbl.Name)
 			}else {
-				// if newVersionTbl.GetDigest() != tbl.GetDigest() {//exist but not equal
-				// 	changeList = append(changeList, "TBL MODIFY: " + tbl.Name)
-				// }
-				list, err := newVersionTbl.Compare(tbl)
+				list, err := tehranTbl.Compare(&mshdTbl)// call by reference for speed efficiency
 				if err == nil {
 					changeList = append(changeList, list...)
 				}
 			}
 		}
-		for _, currentVersionNvw := range this.Tables {//drop old view
-			tbl := newVersion.GetTable(currentVersionNvw.Name)
+		for _, currentVersionTbl := range this.Tables {//drop old view
+			tbl := mshdSchema.GetTable(currentVersionTbl.Name)
 			if tbl == nil {
-				changeList = append(changeList, "TBL DROP: "+ currentVersionNvw.Name)
+				changeList = append(changeList, "TBL DROP: "+ currentVersionTbl.Name)
 			}
 		}
 		//compare nvw
-		for _, newVersionNvw := range newVersion.Views {
+		for _, newVersionNvw := range mshdSchema.Views {
 			nvw := this.GetView(newVersionNvw.Name)
 			if nvw == nil {//not found=> add new procedure
 				changeList = append(changeList, "NVW CREATE: " + newVersionNvw.Name)
@@ -135,7 +132,7 @@ type Schema struct{
 			}
 		}
 		for _, currentVersionNvw := range this.Views {//drop old view
-			nvw := newVersion.GetView(currentVersionNvw.Name)
+			nvw := mshdSchema.GetView(currentVersionNvw.Name)
 			if nvw == nil {
 				changeList = append(changeList, "NVW DROP: "+ currentVersionNvw.Name)
 			}
@@ -170,4 +167,14 @@ type Schema struct{
 		// jsonFile's content into 'users' which we defined above
 		json.Unmarshal(byteValue, &schema)
 		return schema
+	}
+
+	func (this *Schema) DeleteTable(tblName string){
+		for i,tbl := range this.Tables{
+			if tbl.Name == tblName {
+				this.Tables[i] = this.Tables[len(this.Tables) - 1]
+				this.Tables[len(this.Tables) - 1] = Table{}
+				this.Tables = this.Tables[:len(this.Tables)-1]
+			}
+		}
 	}

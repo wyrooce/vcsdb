@@ -19,16 +19,22 @@ func main() {
 		fmt.Print(e)
 	}
 
-	var schema =  models.Schema{Name:os.Getenv("db_user")}
+	var tehranSchema =  models.Schema{Name:os.Getenv("db_user")}
 	db := models.GetDB()
-	// schema.Procedures = models.FetchProcedure(db)
-	schema.Views = models.FetchView(db)
-	schema.Tables = models.FetchTable(db)
-	schema.Procedures = models.FetchProcedure(db)
-	schema.Functions = models.FetchFunction(db)
-	otherSchema := models.FetchSchema("dbimage_pragg.json")	//file sent from Mashhad
-	//fmt.Println(otherSchema.GetProcedure("PRC_REPORT_VALUE").SQLCode)
-	list := schema.Compare(otherSchema)
+	
+	tehranSchema.Views = models.FetchView(db)
+	tehranSchema.Tables = models.FetchTable(db)
+	tehranSchema.Procedures = models.FetchProcedure(db)
+	tehranSchema.Functions = models.FetchFunction(db)
+	tehranSchema.Packages = models.FetchPackage(db)
+	
+
+	mashhadSchema := models.FetchSchema("dbimage_pragg.json")	//file sent from Mashhad
+	// tehranSchema := models.FetchSchema("dbimage_pragg.json")	//file sent from Mashhad
+	// schema.DeleteTable("TBL_LEDGER_BRANCH")
+	// mshdSchema.DeleteTable("TBL_LEDGER_BRANCH")
+
+	list := tehranSchema.Compare(mashhadSchema)
 
 	for _, change := range list{
 		fmt.Println(change)
@@ -36,7 +42,9 @@ func main() {
 	if len(list) == 0 {
 		fmt.Println("No Different Found.")
 	}
-
+	// fmt.Println(models.TABLE_PROPERTY_QUERY)
+	
+	
 
 	// f, err := os.Create("dbimage_"+os.Getenv("db_user")+".json")
     // if err != nil {
@@ -55,10 +63,8 @@ func main() {
     //     fmt.Println(err)
     //     return
 	// }
-
-
+		
 	
-	// fmt.Println(hash)
 	fmt.Println(time.Now().Sub(start))
 }
 
