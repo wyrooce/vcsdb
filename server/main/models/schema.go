@@ -65,27 +65,27 @@ type Schema struct{
 		return nil
 	}
 	
-	func (this *Schema) Compare(mshdSchema Schema) []string{ //compare with new version
+	func (this *Schema) Compare(mashhadSchema Schema) []string{ //compare with new version
 		var changeList []string
 		//compare prc
-		for _, mshdPrc := range mshdSchema.Procedures {
-			prc := this.GetProcedure(mshdPrc.Name)
+		for _, mashhadPrc := range mashhadSchema.Procedures {
+			prc := this.GetProcedure(mashhadPrc.Name)
 			if prc == nil {//not found=> add new procedure
-				changeList = append(changeList, "PRC CREATE: " + mshdPrc.Name)
+				changeList = append(changeList, "PRC CREATE: " + mashhadPrc.Name)
 			}else {
-				if mshdPrc.GetDigest() != prc.GetDigest() {//exist but not equal
+				if mashhadPrc.GetDigest() != prc.GetDigest() {//exist but not equal
 					changeList = append(changeList, "PRC MODIFY: " + prc.Name)
 				}
 			}
 		}
 		for _, currentVersionPrc := range this.Procedures {//drop old procedure
-			prc := mshdSchema.GetProcedure(currentVersionPrc.Name)
+			prc := mashhadSchema.GetProcedure(currentVersionPrc.Name)
 			if prc == nil {
 				changeList = append(changeList, "PRC DROP: "+ currentVersionPrc.Name)
 			}
 		}
 		// //compare fnc
-		for _, newVersionFnc := range mshdSchema.Functions {
+		for _, newVersionFnc := range mashhadSchema.Functions {
 			fnc := this.GetFunction(newVersionFnc.Name)
 			if fnc == nil {//not found=> add new procedure
 				changeList = append(changeList, "FNC CREATE: " + newVersionFnc.Name)
@@ -96,32 +96,32 @@ type Schema struct{
 			}
 		}
 		for _, currentVersionFnc := range this.Functions {//drop old function
-			fnc := mshdSchema.GetFunction(currentVersionFnc.Name)
+			fnc := mashhadSchema.GetFunction(currentVersionFnc.Name)
 			if fnc == nil {
 				changeList = append(changeList, "FNC DROP: "+ currentVersionFnc.Name)
 			}
 		}
 		//compare pkg
 		//compare tbl
-		for _, mshdTbl := range mshdSchema.Tables {
-			tehranTbl := this.GetTable(mshdTbl.Name)
+		for _, mashhadTbl := range mashhadSchema.Tables {
+			tehranTbl := this.GetTable(mashhadTbl.Name)
 			if tehranTbl == nil {//not found=> add new procedure
-				changeList = append(changeList, "TBL CREATE: " + mshdTbl.Name)
+				changeList = append(changeList, "TBL CREATE: " + mashhadTbl.Name)
 			}else {
-				list, err := tehranTbl.Compare(&mshdTbl)// call by reference for speed efficiency
+				list, err := tehranTbl.Compare(&mashhadTbl)// call by reference for speed efficiency
 				if err == nil {
 					changeList = append(changeList, list...)
 				}
 			}
 		}
 		for _, currentVersionTbl := range this.Tables {//drop old view
-			tbl := mshdSchema.GetTable(currentVersionTbl.Name)
+			tbl := mashhadSchema.GetTable(currentVersionTbl.Name)
 			if tbl == nil {
 				changeList = append(changeList, "TBL DROP: "+ currentVersionTbl.Name)
 			}
 		}
 		//compare nvw
-		for _, newVersionNvw := range mshdSchema.Views {
+		for _, newVersionNvw := range mashhadSchema.Views {
 			nvw := this.GetView(newVersionNvw.Name)
 			if nvw == nil {//not found=> add new procedure
 				changeList = append(changeList, "NVW CREATE: " + newVersionNvw.Name)
@@ -132,7 +132,7 @@ type Schema struct{
 			}
 		}
 		for _, currentVersionNvw := range this.Views {//drop old view
-			nvw := mshdSchema.GetView(currentVersionNvw.Name)
+			nvw := mashhadSchema.GetView(currentVersionNvw.Name)
 			if nvw == nil {
 				changeList = append(changeList, "NVW DROP: "+ currentVersionNvw.Name)
 			}

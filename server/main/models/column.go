@@ -9,29 +9,29 @@ type Column struct {
 	ID uint64
 }
 
-func (this *Column) Compare(mashhadCol Column) ([]string, error){
+func (this *Column) Compare(mashhadCol Column, tableName string) ([]string, error){
 	var list []string
 	if this.Name == mashhadCol.Name && this.ID != mashhadCol.ID {
 		return nil, nil
 	}
-	if this.Name == mashhadCol.Name && this.ID != mashhadCol.ID {
-		list = append(list, "COLUMN MODIFY: Rename "+this.Name + " TO " + mashhadCol.Name)
-	}
+	// if this.Name == mashhadCol.Name && this.ID != mashhadCol.ID {
+	// 	list = append(list, "COLUMN MODIFY: Rename "+this.Name + " TO " + mashhadCol.Name)
+	// }
 	if this.DataType != mashhadCol.DataType {
-		list = append(list, "COLUMN MODIFY: Typte change " + this.Name + " TO " + mashhadCol.DataType)
+		list = append(list, "COLUMN MODIFY[Type]: " + tableName + "." +  this.Name + "--->" + mashhadCol.DataType)
 	}
 	if this.Default != mashhadCol.Default {
-		list = append(list, "COLUMN MODIFY: Default " + this.Name + " TO " + mashhadCol.Default)
+		list = append(list, "COLUMN MODIFY[Default]: " + tableName + "." + this.Name + "--->" + mashhadCol.Default)
 	}
 	if this.Nullable != mashhadCol.Nullable {
 		nullable := "false"
 		if mashhadCol.Nullable {
 			nullable = "true"
 		}
-		list = append(list, "COLUMN MODIFY: Nullable " + this.Name + " TO " + nullable)
+		list = append(list, "COLUMN MODIFY[Nullable]: " + tableName + "." +  this.Name + "--->" + nullable)
 	}
 	if this.Length != mashhadCol.Length {
-		list = append(list, "COLUMN MODIFY: Length " + this.Name + " TO " + mashhadCol.Length)
+		list = append(list, "COLUMN MODIFY[Length]: " + tableName + "." +  this.Name + "--->" + mashhadCol.Length)
 	}
 	return list, nil
 }

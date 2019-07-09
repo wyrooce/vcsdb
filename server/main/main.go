@@ -2,6 +2,7 @@ package main
 
 import (
 	"mym/vcs/server/main/models"
+	"mym/vcs/server/main/cmd"
 	"fmt"
 	"github.com/joho/godotenv"
 	"os"
@@ -13,6 +14,7 @@ import (
 func main() {
 
 	start := time.Now()
+	cmd.Execute()
 
 	e := godotenv.Load()
 	if e != nil {
@@ -20,8 +22,8 @@ func main() {
 	}
 
 	var tehranSchema =  models.Schema{Name:os.Getenv("db_user")}
-	db := models.GetDB()
 	
+	db := models.GetDB()
 	tehranSchema.Views = models.FetchView(db)
 	tehranSchema.Tables = models.FetchTable(db)
 	tehranSchema.Procedures = models.FetchProcedure(db)
@@ -42,16 +44,17 @@ func main() {
 	if len(list) == 0 {
 		fmt.Println("No Different Found.")
 	}
-	// fmt.Println(models.TABLE_PROPERTY_QUERY)
 	
-	
+
+		
+	// fmt.Println(string(js))
 
 	// f, err := os.Create("dbimage_"+os.Getenv("db_user")+".json")
     // if err != nil {
     //     fmt.Println(err)
     //     return
     // }
-    // l, err := f.WriteString(schema.ToJSONString())
+    // l, err := f.WriteString(tehranSchema.ToJSONString())
     // if err != nil {
     //     fmt.Println(err)
     //     f.Close()
@@ -65,6 +68,6 @@ func main() {
 	// }
 		
 	
-	fmt.Println(time.Now().Sub(start))
+	fmt.Println("Duration:", time.Now().Sub(start))
 }
 

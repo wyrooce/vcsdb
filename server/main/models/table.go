@@ -23,10 +23,11 @@ func (this *Table) Compare(mashhadTbl *Table) ([]string, error) {
 	for _, mashhadColumn := range mashhadTbl.Columns {
 		tehranColumn := this.GetColumn(mashhadColumn.Name)
 		if tehranColumn == nil {
-			alter := "ALTER TABLE "+mashhadTbl.Name + " ADD " + mashhadColumn.Name + " " +mashhadColumn.DataType+ ";"
-			changeList = append(changeList, this.Name + ": " + alter)
+
+			alter := "-- ALTER TABLE "+mashhadTbl.Name + " ADD " + mashhadColumn.Name +" "+ mashhadColumn.DataType +"("+mashhadColumn.Length+");"
+			changeList = append(changeList, "COLUMN ADD: " + alter)
 		} else {
-			list, _ := tehranColumn.Compare(mashhadColumn)
+			list, _ := tehranColumn.Compare(mashhadColumn, mashhadTbl.Name)
 			changeList = append(changeList, list...)
 		}
 	}
@@ -41,6 +42,51 @@ func (this *Table) GetColumn(columnName string) *Column {
 	}
 	return nil
 }
+
+// func FetchTable(db *sql.DB) ([]Table) {
+// 	var tableName, colName, datatype, length, nullable, defaultValue, colID, objectID  string
+// 	var isNullable bool
+// 	var list []Table
+// 	var colIDUint, objectIDuint uint64
+// 	prevName := "notab"
+// 	tbl := Table{}
+
+
+
+//     rows, err := db.Query(TABLE_PROPERTY_QUERY)
+// 	for rows.Next(){
+// 		if err = rows.Scan(&tableName, &colName, &datatype, &length, &nullable, &defaultValue, &colID, &objectID); err != nil {
+//       		log.Fatal(err)
+// 		}
+// 		if prevName == "notab" || prevName == tableName {
+// 			if nullable == "Y" {
+// 				isNullable = true
+// 			}else {
+// 				isNullable = false
+// 			}
+// 			colIDUint, _ = strconv.ParseUint(colID, 10, 32)
+// 			objectIDuint, _ = strconv.ParseUint(objectID, 10, 32)
+// 			col := Column{Name:colName, DataType:datatype, Length: length, Nullable: isNullable, Default:defaultValue, ID: colIDUint}
+// 			tbl.Columns = append(tbl.Columns, col)
+// 			}else {
+// 				tbl.Name = tableName
+// 				tbl.ObjectID = objectIDuint			
+// 				list = append(list, tbl)
+// 				tbl = Table{}
+// 			}
+// 			prevName = tableName
+//     }
+//     return list
+// }
+
+func (this *Table) ToJSONString() string {
+	js, err := json.Marshal(this)
+	if err != nil{
+		return "-"
+	}
+	return string(js)
+}
+
 
 func FetchTable(db *sql.DB) ([]Table) {
 	var tableName, colName, datatype, length, nullable, defaultValue, colID, objectID  string
@@ -57,31 +103,26 @@ func FetchTable(db *sql.DB) ([]Table) {
 		if err = rows.Scan(&tableName, &colName, &datatype, &length, &nullable, &defaultValue, &colID, &objectID); err != nil {
       		log.Fatal(err)
 		}
-		if prevName == "notab" || prevName == tableName {
-			if nullable == "Y" {
-				isNullable = true
-			}else {
-				isNullable = false
-			}
-			colIDUint, _ = strconv.ParseUint(colID, 10, 32)
-			objectIDuint, _ = strconv.ParseUint(objectID, 10, 32)
-			col := Column{Name:colName, DataType:datatype, Length: length, Nullable: isNullable, Default:defaultValue, ID: colIDUint}
-			tbl.Columns = append(tbl.Columns, col)
+		
+		if nullable == "Y" {
+			isNullable = true
 		}else {
-			tbl.Name = tableName
-			tbl.ObjectID = objectIDuint			
+			isNullable = false
+		}
+		colIDUint, _ = strconv.ParseUint(colID, 10, 32)
+		objectIDuint, _ = strconv.ParseUint(objectID, 10, 32)
+		col := Column{Name:colName, DataType:datatype, Length: length, Nullable: isNullable, Default:defaultValue, ID: colIDUint}
+		
+		if prevName != "notab" && prevName != tableName {
 			list = append(list, tbl)
 			tbl = Table{}
 		}
+			
+		tbl.Columns = append(tbl.Columns, col)
+		tbl.Name = tableName
+		tbl.ObjectID = objectIDuint			
+		
 		prevName = tableName
     }
     return list
-}
-
-func (this *Table) ToJSONString() string {
-	js, err := json.Marshal(this)
-	if err != nil{
-		return "-"
-	}
-	return string(js)
 }
