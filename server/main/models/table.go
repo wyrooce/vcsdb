@@ -15,23 +15,28 @@ type Table struct{
 	Columns []Column
 }
 
-func (this *Table) Compare(mashhadTbl *Table) ([]string, error) {
-	var changeList []string
+func (this *Table) Compare(mashhadTbl *Table) ([]ChangeDescription, error) {
+	var diffList []ChangeDescription
 	if this.Name != mashhadTbl.Name {
 		return nil, errors.New("compare: Incompatible compare")
 	}
 	for _, mashhadColumn := range mashhadTbl.Columns {
 		tehranColumn := this.GetColumn(mashhadColumn.Name)
 		if tehranColumn == nil {
-
-			alter := "-- ALTER TABLE "+mashhadTbl.Name + " ADD " + mashhadColumn.Name +" "+ mashhadColumn.DataType +"("+mashhadColumn.Length+");"
-			changeList = append(changeList, "COLUMN ADD: " + alter)
+			diff := ChangeDescription{}
+			diff.Brief = "TBL MODIFY: "+ mashhadTbl.Name + " Add Column" // drop body and spec
+			diff.ChangeType = "modify"
+			diff.ObjectType = "table"
+			diff.ObjectName = mashhadTbl.Name
+			diff.ObjectID = mashhadTbl.ObjectID
+			diff.AlterScript = "ALTER TABLE "+mashhadTbl.Name + " ADD " + mashhadColumn.Name +" "+ mashhadColumn.DataType +"("+mashhadColumn.Length+");"
+			diffList = append(diffList, diff)
 		} else {
-			list, _ := tehranColumn.Compare(mashhadColumn, mashhadTbl.Name)
-			changeList = append(changeList, list...)
+			list, _ := tehranColumn.Compare(mashhadColumn, mashhadTbl)
+			diffList = append(diffList, list...)
 		}
 	}
-	return changeList, nil	
+	return diffList, nil	
 }
 
 func (this *Table) GetColumn(columnName string) *Column {

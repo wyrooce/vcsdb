@@ -14,7 +14,7 @@ type Schema struct{
 	Packages []Package
 	Functions []Function
 	Views []View
-	Description string
+	Description map[string]string
 }
 
 
@@ -65,79 +65,178 @@ type Schema struct{
 		return nil
 	}
 	
-	func (this *Schema) Compare(mashhadSchema Schema) []string{ //compare with new version
-		var changeList []string
+	func (this *Schema) Compare(mashhadSchema Schema) []ChangeDescription{ //compare with new version
+		var diffList []ChangeDescription
 		//compare prc
 		for _, mashhadPrc := range mashhadSchema.Procedures {
 			prc := this.GetProcedure(mashhadPrc.Name)
-			if prc == nil {//not found=> add new procedure
-				changeList = append(changeList, "PRC CREATE: " + mashhadPrc.Name)
-			}else {
-				if mashhadPrc.GetDigest() != prc.GetDigest() {//exist but not equal
-					changeList = append(changeList, "PRC MODIFY: " + prc.Name)
-				}
+			if prc != nil && mashhadPrc.GetDigest() == prc.GetDigest() {
+				continue
 			}
+			//else
+			diff := ChangeDescription{}
+			diff.Brief = "PRC CREATE: " + mashhadPrc.Name
+			diff.ChangeType = "create"
+			diff.ObjectType = "procedure"
+			diff.ObjectName = mashhadPrc.Name
+			diff.ObjectID = mashhadPrc.ObjectID
+			diff.AlterScript = mashhadPrc.SQLCode
+			diffList = append(diffList, diff)
+			if prc != nil {
+				diff.ChangeType = "modify"
+				diff.Brief = "PRC MODIFY: " + mashhadPrc.Name
+			}
+			
 		}
 		for _, currentVersionPrc := range this.Procedures {//drop old procedure
 			prc := mashhadSchema.GetProcedure(currentVersionPrc.Name)
 			if prc == nil {
-				changeList = append(changeList, "PRC DROP: "+ currentVersionPrc.Name)
+				diff := ChangeDescription{}
+				diff.Brief = "PRC DROP: "+ currentVersionPrc.Name
+				diff.ChangeType = "drop"
+				diff.ObjectType = "procedure"
+				diff.ObjectName = currentVersionPrc.Name
+				diff.ObjectID = currentVersionPrc.ObjectID
+				diff.AlterScript = "Drop Procedure "+currentVersionPrc.Name + ";"
+				diffList = append(diffList, diff)
 			}
 		}
 		// //compare fnc
-		for _, newVersionFnc := range mashhadSchema.Functions {
-			fnc := this.GetFunction(newVersionFnc.Name)
-			if fnc == nil {//not found=> add new procedure
-				changeList = append(changeList, "FNC CREATE: " + newVersionFnc.Name)
-			}else {
-				if newVersionFnc.GetDigest() != fnc.GetDigest() {//exist but not equal
-					changeList = append(changeList, "FNC MODIFY: " + fnc.Name)
-				}
+		for _, mashhadFnc := range mashhadSchema.Functions {
+			fnc := this.GetFunction(mashhadFnc.Name)
+			if fnc != nil && mashhadFnc.GetDigest() == fnc.GetDigest() {
+				continue
 			}
+			//else
+			diff := ChangeDescription{}
+			diff.Brief = "FNC CREATE: " + mashhadFnc.Name
+			diff.ChangeType = "create"
+			diff.ObjectType = "function"
+			diff.ObjectName = mashhadFnc.Name
+			diff.ObjectID = mashhadFnc.ObjectID
+			diff.AlterScript = mashhadFnc.SQLCode
+			diffList = append(diffList, diff)
+			if fnc != nil {
+				diff.ChangeType = "modify"
+				diff.Brief = "FNC MODIFY: " + mashhadFnc.Name
+			}
+			
 		}
-		for _, currentVersionFnc := range this.Functions {//drop old function
-			fnc := mashhadSchema.GetFunction(currentVersionFnc.Name)
-			if fnc == nil {
-				changeList = append(changeList, "FNC DROP: "+ currentVersionFnc.Name)
+		for _, currentVersionFnc := range this.Functions {//drop old procedure
+			prc := mashhadSchema.GetFunction(currentVersionFnc.Name)
+			if prc == nil {
+				diff := ChangeDescription{}
+				diff.Brief = "FNC DROP: "+ currentVersionFnc.Name
+				diff.ChangeType = "drop"
+				diff.ObjectType = "function"
+				diff.ObjectName = currentVersionFnc.Name
+				diff.ObjectID = currentVersionFnc.ObjectID
+				diff.AlterScript = "Drop Function "+currentVersionFnc.Name + ";"
+				diffList = append(diffList, diff)
 			}
 		}
 		//compare pkg
+		for _, mashhadPkg := range mashhadSchema.Packages {
+			pkg := this.GetPackage(mashhadPkg.Name)
+			if pkg != nil && mashhadPkg.GetDigest() == pkg.GetDigest() {
+				continue
+			}
+			//else
+			diff := ChangeDescription{}
+			diff.Brief = "PKG CREATE: " + mashhadPkg.Name
+			diff.ChangeType = "create"
+			diff.ObjectType = "package"
+			diff.ObjectName = mashhadPkg.Name
+			diff.ObjectID = mashhadPkg.ObjectID
+			diff.AlterScript = mashhadPkg.Specification + "\n\n"+ mashhadPkg.SQLCode 
+			diffList = append(diffList, diff)
+			if pkg != nil {
+				diff.ChangeType = "modify"
+				diff.Brief = "PKG MODIFY: " + mashhadPkg.Name
+			}
+			
+		}
+		for _, currentVersionPkg := range this.Packages {//drop old procedure
+			pkg := mashhadSchema.GetPackage(currentVersionPkg.Name)
+			if pkg == nil {
+				diff := ChangeDescription{}
+				diff.Brief = "PKG DROP: "+ currentVersionPkg.Name // drop body and spec
+				diff.ChangeType = "drop"
+				diff.ObjectType = "package"
+				diff.ObjectName = currentVersionPkg.Name
+				diff.ObjectID = currentVersionPkg.ObjectID
+				diff.AlterScript = "Drop Package "+currentVersionPkg.Name + ";"
+				diffList = append(diffList, diff)
+			}
+		}
 		//compare tbl
 		for _, mashhadTbl := range mashhadSchema.Tables {
 			tehranTbl := this.GetTable(mashhadTbl.Name)
 			if tehranTbl == nil {//not found=> add new procedure
-				changeList = append(changeList, "TBL CREATE: " + mashhadTbl.Name)
+				diff := ChangeDescription{}
+				diff.Brief = "TBL CREATE: "+ mashhadTbl.Name // drop body and spec
+				diff.ChangeType = "create"
+				diff.ObjectType = "table"
+				diff.ObjectName = mashhadTbl.Name
+				diff.ObjectID = mashhadTbl.ObjectID
+				diff.AlterScript = "Create Table "+ mashhadTbl.Name + ";"//crete statement**********************************
+				diffList = append(diffList, diff)
 			}else {
 				list, err := tehranTbl.Compare(&mashhadTbl)// call by reference for speed efficiency
 				if err == nil {
-					changeList = append(changeList, list...)
+					diffList = append(diffList, list...)
 				}
 			}
 		}
 		for _, currentVersionTbl := range this.Tables {//drop old view
 			tbl := mashhadSchema.GetTable(currentVersionTbl.Name)
 			if tbl == nil {
-				changeList = append(changeList, "TBL DROP: "+ currentVersionTbl.Name)
+				diff := ChangeDescription{}
+				diff.Brief = "TBL CREDROP: "+ currentVersionTbl.Name // drop body and spec
+				diff.ChangeType = "drop"
+				diff.ObjectType = "table"
+				diff.ObjectName = currentVersionTbl.Name
+				diff.ObjectID = currentVersionTbl.ObjectID
+				diff.AlterScript = "Drop Table "+ currentVersionTbl.Name + ";"//crete statement
+				diffList = append(diffList, diff)
 			}
 		}
 		//compare nvw
-		for _, newVersionNvw := range mashhadSchema.Views {
-			nvw := this.GetView(newVersionNvw.Name)
-			if nvw == nil {//not found=> add new procedure
-				changeList = append(changeList, "NVW CREATE: " + newVersionNvw.Name)
-			}else {
-				if newVersionNvw.GetDigest() != nvw.GetDigest() {//exist but not equal
-					changeList = append(changeList, "NVW EDIT: " + nvw.Name)
-				}
+		for _, mashhadNvw := range mashhadSchema.Views {
+			nvw := this.GetFunction(mashhadNvw.Name)
+			if nvw != nil && mashhadNvw.GetDigest() == nvw.GetDigest() {
+				continue
+			}
+			//else
+			diff := ChangeDescription{}
+			diff.Brief = "NVW CREATE: " + mashhadNvw.Name
+			diff.ChangeType = "create"
+			diff.ObjectType = "view"
+			diff.ObjectName = mashhadNvw.Name
+			diff.ObjectID = mashhadNvw.ObjectID
+			diff.AlterScript = "Create View " + mashhadNvw.Name + " As " + mashhadNvw.SQLCode + ";"
+			diffList = append(diffList, diff)
+			if nvw != nil {
+				diff.ChangeType = "modify"
+				diff.Brief = "NVW MODIFY: " + mashhadNvw.Name
+				diff.AlterScript = "Drop View " + mashhadNvw.Name + "; " + diff.AlterScript
 			}
 		}
-		for _, currentVersionNvw := range this.Views {//drop old view
+		
+		for _, currentVersionNvw := range this.Views {//drop old procedure
 			nvw := mashhadSchema.GetView(currentVersionNvw.Name)
 			if nvw == nil {
-				changeList = append(changeList, "NVW DROP: "+ currentVersionNvw.Name)
+				diff := ChangeDescription{}
+				diff.Brief = "NVW DROP: "+ currentVersionNvw.Name
+				diff.ChangeType = "drop"
+				diff.ObjectType = "view"
+				diff.ObjectName = currentVersionNvw.Name
+				diff.ObjectID = currentVersionNvw.ObjectID
+				diff.AlterScript = "Drop View "+ currentVersionNvw.Name + ";"
+				diffList = append(diffList, diff)
 			}
 		}
-		return changeList
+		return diffList
 	}
 	
 	func (this *Schema) ToJSONString() string{
